@@ -42,26 +42,24 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
      */
     public function onCommand(ConsoleCommandEvent $event): void
     {
-        $commandName = $event->getCommand()?->getName();
-        if ($commandName === null) {
+        $command = $event->getCommand();
+        if (!$command) {
             return;
         }
 
-        foreach ($this->registry->all() as $mainCommand => $memberCommands) {
-            if (!in_array($commandName, $memberCommands, true)) {
-                continue;
-            }
-
-            $event->getOutput()->writeln(sprintf(
-                '<error>"%s" command is a member of "%s" command chain and cannot be executed on its own.</error>',
-                $commandName,
-                $mainCommand
-            ));
-
-            $event->disableCommand();
-
+        $commandName = $command->getName();
+        $mainCommand = $this->registry->getMainCommandForMember($commandName);
+        if ($mainCommand === null) {
             return;
         }
+
+        $event->getOutput()->writeln(sprintf(
+            '<error>Error: "%s" command is a member of "%s" command chain and cannot be executed on its own.</error>',
+            $commandName,
+            $mainCommand
+        ));
+
+        $event->disableCommand();
     }
 
     /**

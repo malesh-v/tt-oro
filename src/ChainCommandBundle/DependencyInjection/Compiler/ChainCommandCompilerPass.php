@@ -31,7 +31,7 @@ final class ChainCommandCompilerPass implements CompilerPassInterface
                 $container->getDefinition($id)
                     ->addMethodCall('setHidden', [true]);
 
-                $registry->addMethodCall('register', [$mainCommand, new Reference($id)]);
+                $registry->addMethodCall('registerMemberReference', [$mainCommand, new Reference($id)]);
             }
         }
     }

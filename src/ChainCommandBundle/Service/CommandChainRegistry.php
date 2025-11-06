@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace App\ChainCommandBundle\Service;
 
+use Symfony\Component\Console\Command\Command;
+
 /**
  * Registry that stores relationships between main and member commands.
  */
 final class CommandChainRegistry
 {
+    /**
+     * Maps main command name => list of member command names.
+     */
     private array $chains = [];
 
     /**
-     * Registers a member command to a main command chain.
+     * Registers a member command to a main command.
      */
-    public function register(string $mainCommandName, string $memberCommandName): void
+    public function registerMemberReference(string $mainCommandName, Command $memberReference): void
     {
-        $this->chains[$mainCommandName][] = $memberCommandName;
+        $this->chains[$mainCommandName][] = $memberReference->getName();
     }
 
     /**
@@ -28,10 +33,16 @@ final class CommandChainRegistry
     }
 
     /**
-     * Returns all chains currently registered.
+     * Returns the main command name if the given command is a member, or null.
      */
-    public function all(): array
+    public function getMainCommandForMember(string $memberName): ?string
     {
-        return $this->chains;
+        foreach ($this->chains as $mainCommand => $members) {
+            if (in_array($memberName, $members, true)) {
+                return $mainCommand;
+            }
+        }
+
+        return null;
     }
 }
