@@ -8,6 +8,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Member command that will be part of foo:hello chain.
@@ -16,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
     name: 'bar:hi',
     description: 'Member command of foo:hello chain.'
 )]
+#[AutoconfigureTag('chain.command.member', ['main-command' => 'foo:hello'])]
 final class BarHiCommand extends Command
 {
     /**
