@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\ChainCommandBundle\EventSubscriber;
 
 use App\ChainCommandBundle\Service\CommandChainRegistry;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
@@ -22,8 +23,10 @@ use Throwable;
  */
 final readonly class ChainCommandSubscriber implements EventSubscriberInterface
 {
-    public function __construct(private CommandChainRegistry $registry)
-    {
+    public function __construct(
+        private CommandChainRegistry $registry,
+        private LoggerInterface $logger,
+    ) {
     }
 
     /**
@@ -48,18 +51,27 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
         }
 
         $commandName = $command->getName();
+
+        // Prevent direct execution of member commands
         $mainCommand = $this->registry->getMainCommandForMember($commandName);
-        if ($mainCommand === null) {
+        if ($mainCommand !== null) {
+            $event->getOutput()->writeln(sprintf(
+                '<error>Error: "%s" command is a member of "%s" command chain and cannot be executed on its own.</error>',
+                $commandName,
+                $mainCommand
+            ));
+
+            $event->disableCommand();
+
             return;
         }
 
-        $event->getOutput()->writeln(sprintf(
-            '<error>Error: "%s" command is a member of "%s" command chain and cannot be executed on its own.</error>',
-            $commandName,
-            $mainCommand
-        ));
+        // Do nothing when no registered members
+        if (empty($this->registry->getMembers($commandName))) {
+            return;
+        }
 
-        $event->disableCommand();
+        $this->logCommandChainInfo($commandName);
     }
 
     /**
@@ -75,15 +87,19 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
         $application = $command?->getApplication();
         $commandName = $command?->getName();
 
-        if (!$application || !$commandName) {
+        if (!$application || !$commandName || empty($this->registry->getMembers($commandName))) {
             return;
         }
 
         $output = $event->getOutput();
 
+        $this->logger->info(sprintf('Executing %s chain members:', $commandName));
+
         foreach ($this->registry->getMembers($commandName) as $memberName) {
             $this->runMemberCommandWithHandling($application, $memberName, $output);
         }
+
+        $this->logger->info(sprintf('Execution of %s chain completed.', $commandName));
     }
 
     /**
@@ -119,5 +135,23 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
         if ($errorMessage !== null) {
             $output->writeln(sprintf('<error>%s</error>', $errorMessage));
         }
+    }
+
+    private function logCommandChainInfo(string $commandName): void
+    {
+        $this->logger->info(sprintf(
+            '%s is a master command of a command chain that has registered member commands',
+            $commandName
+        ));
+
+        foreach ($this->registry->getMembers($commandName) as $memberName) {
+            $this->logger->info(sprintf(
+                '%s registered as a member of %s command chain',
+                $memberName,
+                $commandName
+            ));
+        }
+
+        $this->logger->info(sprintf('Executing %s command itself first:', $commandName));
     }
 }

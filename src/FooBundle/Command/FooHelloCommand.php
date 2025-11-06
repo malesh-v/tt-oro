@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\FooBundle\Command;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,12 +19,18 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 final class FooHelloCommand extends Command
 {
-    /**
-     * Executes a command.
-     */
+    private const TEXT_TO_PRINT = 'Hello from Foo!';
+
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {
+        parent::__construct();
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Hello from Foo!');
+        $this->logger->info(self::TEXT_TO_PRINT);
+        $output->writeln(self::TEXT_TO_PRINT);
 
         return Command::SUCCESS;
     }
