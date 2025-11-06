@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 final class ChainCommandBundle extends Bundle
 {
     /**
-     * Add compiler pass to register chain members after all bundles are loaded
+     * Add compiler pass to register chain members after all bundles are loaded.
      */
     public function build(ContainerBuilder $container): void
     {

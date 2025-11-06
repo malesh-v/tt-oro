@@ -12,7 +12,7 @@ use Symfony\Component\Console\Command\Command;
 final class CommandChainRegistry
 {
     /**
-     * Maps main command name => list of member command names.
+     * @var array<string, list<string>> maps main command name => list of member command names
      */
     private array $chains = [];
 
@@ -26,6 +26,8 @@ final class CommandChainRegistry
 
     /**
      * Returns all member commands registered for the given main command.
+     *
+     * @return list<string>
      */
     public function getMembers(string $mainCommandName): array
     {
@@ -38,7 +40,7 @@ final class CommandChainRegistry
     public function getMainCommandForMember(string $memberName): ?string
     {
         foreach ($this->chains as $mainCommand => $members) {
-            if (in_array($memberName, $members, true)) {
+            if (\in_array($memberName, $members, true)) {
                 return $mainCommand;
             }
         }

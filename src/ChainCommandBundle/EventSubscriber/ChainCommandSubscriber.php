@@ -16,7 +16,6 @@ use Symfony\Component\Console\Exception\ExceptionInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Throwable;
 
 /**
  * Listens to Symfony console events to manage command chain execution.
@@ -54,8 +53,8 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
 
         // Prevent direct execution of member commands
         $mainCommand = $this->registry->getMainCommandForMember($commandName);
-        if ($mainCommand !== null) {
-            $event->getOutput()->writeln(sprintf(
+        if (null !== $mainCommand) {
+            $event->getOutput()->writeln(\sprintf(
                 '<error>Error: "%s" command is a member of "%s" command chain and cannot be executed on its own.</error>',
                 $commandName,
                 $mainCommand
@@ -79,7 +78,7 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
      */
     public function onTerminate(ConsoleTerminateEvent $event): void
     {
-        if ($this->shouldRunChain($event) === false) {
+        if (false === $this->shouldRunChain($event)) {
             return;
         }
 
@@ -93,13 +92,13 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
 
         $output = $event->getOutput();
 
-        $this->logger->info(sprintf('Executing %s chain members:', $commandName));
+        $this->logger->info(\sprintf('Executing %s chain members:', $commandName));
 
         foreach ($this->registry->getMembers($commandName) as $memberName) {
             $this->runMemberCommandWithHandling($application, $memberName, $output);
         }
 
-        $this->logger->info(sprintf('Execution of %s chain completed.', $commandName));
+        $this->logger->info(\sprintf('Execution of %s chain completed.', $commandName));
     }
 
     /**
@@ -107,8 +106,8 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
      */
     private function shouldRunChain(ConsoleTerminateEvent $event): bool
     {
-        return $event->getExitCode() === Command::SUCCESS
-            && $event->getCommand() !== null;
+        return Command::SUCCESS === $event->getExitCode()
+            && null !== $event->getCommand();
     }
 
     /**
@@ -117,7 +116,7 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
     private function runMemberCommandWithHandling(
         Application $application,
         string $memberName,
-        OutputInterface $output
+        OutputInterface $output,
     ): void {
         $errorMessage = null;
 
@@ -125,33 +124,36 @@ final readonly class ChainCommandSubscriber implements EventSubscriberInterface
             $application->find($memberName)
                 ->run(new ArrayInput([]), $output);
         } catch (CommandNotFoundException $e) {
-            $errorMessage = sprintf('Member command "%s" not found: %s', $memberName, $e->getMessage());
+            $errorMessage = \sprintf('Member command "%s" not found: %s', $memberName, $e->getMessage());
         } catch (ExceptionInterface $e) {
-            $errorMessage = sprintf('Member command "%s" failed: %s', $memberName, $e->getMessage());
-        } catch (Throwable $e) {
-            $errorMessage = sprintf('Unexpected error in member command "%s": %s', $memberName, $e->getMessage());
+            $errorMessage = \sprintf('Member command "%s" failed: %s', $memberName, $e->getMessage());
+        } catch (\Throwable $e) {
+            $errorMessage = \sprintf('Unexpected error in member command "%s": %s', $memberName, $e->getMessage());
         }
 
-        if ($errorMessage !== null) {
-            $output->writeln(sprintf('<error>%s</error>', $errorMessage));
+        if (null !== $errorMessage) {
+            $output->writeln(\sprintf('<error>%s</error>', $errorMessage));
         }
     }
 
+    /**
+     * Log chain related info.
+     */
     private function logCommandChainInfo(string $commandName): void
     {
-        $this->logger->info(sprintf(
+        $this->logger->info(\sprintf(
             '%s is a master command of a command chain that has registered member commands',
             $commandName
         ));
 
         foreach ($this->registry->getMembers($commandName) as $memberName) {
-            $this->logger->info(sprintf(
+            $this->logger->info(\sprintf(
                 '%s registered as a member of %s command chain',
                 $memberName,
                 $commandName
             ));
         }
 
-        $this->logger->info(sprintf('Executing %s command itself first:', $commandName));
+        $this->logger->info(\sprintf('Executing %s command itself first:', $commandName));
     }
 }

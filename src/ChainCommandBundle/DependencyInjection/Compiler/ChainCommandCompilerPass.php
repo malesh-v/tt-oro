@@ -9,10 +9,16 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
+/**
+ * Compiler pass to register command to the main command.
+ */
 final class ChainCommandCompilerPass implements CompilerPassInterface
 {
     private const TAG_NAME = 'chain.command.member';
 
+    /**
+     * Register command to the main command.
+     */
     public function process(ContainerBuilder $container): void
     {
         if (!$container->has(CommandChainRegistry::class)) {
@@ -24,7 +30,7 @@ final class ChainCommandCompilerPass implements CompilerPassInterface
         foreach ($container->findTaggedServiceIds(self::TAG_NAME) as $id => $tags) {
             foreach ($tags as $tag) {
                 $mainCommand = $tag['main-command'] ?? null;
-                if ($mainCommand === null) {
+                if (empty($mainCommand)) {
                     continue;
                 }
 
